@@ -1,0 +1,8 @@
+.env
+.env.*
+.git/
+.vercel/
+admin.html
+components/
+UPDATE-NOTES.md
+SETUP-EMAIL.md

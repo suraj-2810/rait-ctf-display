@@ -1,13 +1,5 @@
-# RAIT CTF — revision 3
+# RAIT CTF v4
 
-Open index.html from this extracted folder. The new styling and sponsor interaction are embedded directly in index.html to avoid loading an older cached CSS/JS file. Keep assets/ alongside it for images and the PDF.
+Sponsor enquiries now use a server-side Vercel function addressed to ctf@rait.ac.in with formatted HTML and plain-text email. Successful submission shows Thank you only. The deck is still a separate direct download above the tiers. Opaque stats and earlier mobile fixes remain.
 
-- Download pitch deck is a standalone button above sponsorship tiers. It requires no form.
-- Submit validates the form and displays only a thank-you panel. There is no download, mail app, network request or backend dependency on submission.
-- This is a presentation-only form: details are not delivered or saved. The thank-you text does not claim delivery.
-- Stats use an explicitly opaque background, with no blur or transparent layer.
-- Existing mobile, keyboard and footer improvements remain.
-
-Replace the previous deployment files with this folder to see the changes on your live site. No live deployment was performed here.
-
-Verified JavaScript syntax, section placement, identical PDF and absence of network/download behavior from form submission. Browser visual testing was unavailable.
+Read SETUP-EMAIL.md before deployment. Email credentials and bot-verification keys are required in Vercel; no secrets are included in this ZIP. Replace the previous site files and remove the excluded old files as instructed.
