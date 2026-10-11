@@ -1,5 +1,9 @@
-# RAIT CTF v4
+# RAIT CTF website update — Web3Forms
 
-Sponsor enquiries now use a server-side Vercel function addressed to ctf@rait.ac.in with formatted HTML and plain-text email. Successful submission shows Thank you only. The deck is still a separate direct download above the tiers. Opaque stats and earlier mobile fixes remain.
+- Connected sponsorship enquiries to Web3Forms while retaining the existing styling and package preselection.
+- Connected the footer Contact and Email links to a general contact mode in the same modal.
+- Added form type/subject metadata, honeypot spam check, request timeout, disabled-submit protection, error handling, and a success screen shown only after Web3Forms reports success.
+- Removed the obsolete Resend + Turnstile serverless endpoints and updated the Content Security Policy to permit Web3Forms API requests.
+- No newsletter/Subscribe UI exists in the source ZIP, so none was fabricated.
 
-Read SETUP-EMAIL.md before deployment. Email credentials and bot-verification keys are required in Vercel; no secrets are included in this ZIP. Replace the previous site files and remove the excluded old files as instructed.
+See `SETUP-EMAIL.md` for deployment and recipient verification steps.

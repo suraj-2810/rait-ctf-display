@@ -1,69 +1,28 @@
-# Enable sponsor emails on Vercel
+# RAIT CTF contact and sponsorship forms (Web3Forms)
 
-The sponsor form emails only ctf@rait.ac.in. The recipient is fixed on the server and cannot be changed through form fields. The formatted email contains contact name, company, email, phone, tier, message, consent, UTC timestamp and a reference. Reply goes to the sponsor. The separate pitch-deck download remains unchanged. Successful submission displays only Thank you.
+The static website sends contact and sponsorship enquiries to Web3Forms. The existing retro-style modal and form styling are retained. No Resend API key, verified sender domain, Cloudflare Turnstile widget, Vercel environment variables, or custom backend is required for this integration.
 
-## 1. Email sender
+## Setup
 
-Create a Resend account, verify a domain you control, and create a sending API key. Choose a sender address on that verified domain. The sender does NOT have to be ctf@rait.ac.in; that is the recipient. Do not use the resend.dev test sender for arbitrary recipients. Never commit the API key or paste it into index.html.
+1. Create or sign in to your account at https://web3forms.com/.
+2. Create an access key after verifying the inbox that should receive enquiries. The current site includes the access key in `index.html`; Web3Forms access keys are intended to be public on client-side forms.
+3. Confirm the access key is associated with `ctf@rait.ac.in`. If it is associated with another inbox, create a key for the correct recipient and replace `WEB3FORMS_ACCESS_KEY` in the embedded sponsor script in `index.html` (and keep `assets/sponsor.js` in sync).
+4. Deploy the project to Vercel with the project root containing `index.html`, `assets/`, and `vercel.json`. No build command is needed for this plain HTML website.
+5. After deploying, test both a sponsorship enquiry and the Contact link, then confirm receipt at `ctf@rait.ac.in` and check that replying targets the submitter's email.
 
-## 2. Bot protection
+## What's connected
 
-Create a Cloudflare Turnstile widget for your exact production website hostname. Choose Managed mode. Keep its site key and secret key. The site key is public; the secret key belongs only in Vercel. Server-side verification is mandatory in this implementation and checks hostname and the sponsor action. Without configuration the form refuses to claim submission.
+- Sponsor package buttons, the Become a Sponsor button, and the footer SPONSOR US button open the sponsorship enquiry form.
+- The footer Contact link and email icon open a general contact form.
+- Both flows submit via `POST https://api.web3forms.com/submit`.
+- The website uses Web3Forms' response to show a success screen only after the service confirms success, and displays an error when submission fails.
+- A hidden honeypot is included as a lightweight anti-spam measure. This is not a substitute for stronger CAPTCHA protection if spam becomes a problem.
+- The pitch-deck download remains a separate direct download and does not ask visitors to fill out a form.
 
-## 3. Vercel environment variables
+## Notes
 
-In the existing project's Settings → Environment Variables, add these for Production:
+There was no newsletter/Subscribe form in this project, so this update does not create a mailing list or imply that someone has been subscribed. Web3Forms forwards form enquiries; it is not by itself a newsletter subscription-management service.
 
-| Name | Value |
-| --- | --- |
-| RESEND_API_KEY | Your Resend sending key |
-| SPONSOR_FROM_EMAIL | RAIT CTF <sponsors@YOUR-VERIFIED-DOMAIN> |
-| TURNSTILE_SITE_KEY | Your widget's public site key |
-| TURNSTILE_SECRET_KEY | Your widget's secret key |
-| SITE_URL | Exact canonical production origin, e.g. https://YOUR-SITE.vercel.app (no path) |
+If you are replacing files inside an existing GitHub repository rather than deploying the ZIP as a clean project, delete the old `api/form-config.js` and `api/sponsor.js` files from the repository because they belong to the previous Resend + Turnstile implementation. Also remove the old `RESEND_API_KEY`, `SPONSOR_FROM_EMAIL`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, and `SITE_URL` variables from Vercel after the new version is deployed.
 
-No recipient variable is needed: ctf@rait.ac.in is fixed in api/sponsor.js. Use one canonical origin; if using a custom domain, redirect alternate domains to it. Preview deployments will reject form requests unless separately configured with their own allowed origin and Turnstile hostname.
-
-Use the project folder containing index.html, api/ and vercel.json as the Vercel root. For this plain HTML site, select Framework Preset Other; no build command is required and the output directory must be the project root, not an old dist folder. Redeploy after setting variables.
-
-Configure a hosting firewall rate-limit rule for POST /api/sponsor appropriate to your event traffic. Turnstile limits automated abuse but cannot guarantee no human spam or volumetric traffic.
-
-## 4. Replace the files in GitHub
-
-Copy the new folder contents into the existing repository root, beside index.html. Remove the old admin.html, components/ and tracked .vercel/ contents if still present. Copy .gitignore and .vercelignore too; extracting on top of old files does not delete them.
-
-From the repository root in PowerShell:
-
-```powershell
-git rm --ignore-unmatch admin.html
-git rm -r --cached --ignore-unmatch .vercel components
-git add .
-git diff --cached --stat
-git commit -m "Secure sponsor email delivery and harden site"
-git push
-```
-
-The existing GitHub-to-Vercel integration should deploy that commit. Confirm the newest deployment is Production. Do not commit .env files. If any actual credentials were previously committed, revoke/rotate them; deleting a file does not erase Git history. No matching credential patterns were found in the source files reviewed here, but remote history was not available.
-
-## 5. Verify after deploying
-
-Download the deck without entering details. Open Become a Sponsor, complete the bot check and send one real test enquiry. Confirm that the formatted email arrives at ctf@rait.ac.in and Reply targets the entered email. Confirm Thank you appears and no PDF download occurs. Provider acceptance is not proof of inbox delivery; check spam/provider logs if necessary.
-
-## Changes and scope
-
-- Fixed terminal DOM injection: terminal output now uses textContent; inherited object properties cannot be called as commands.
-- Removed unused browser-local asset admin and demo password input. The old admin was a local file editor, not a server-authenticated admin portal.
-- Added hash-based script CSP, disabled inline event-handler execution, clickjacking protection, MIME sniffing prevention, referrer and permissions policies.
-- Added same-origin enforcement, input/body limits, mandatory bot verification, escaped email content, fixed recipient, timeout/error handling and duplicate-click prevention.
-- Removed .vercel linkage metadata and unused components from the package; added deployment/git exclusions. These project IDs were not API credentials.
-- Sponsor information is not logged by the handler or saved in browser storage. Email and bot providers process submitted data as needed.
-- Existing desktop challenge flags are public demo data. This frontend is not an authenticated CTF scoring platform; never place real competition flags, credentials or private scoring logic in it.
-
-CSP hashes match the shipped inline scripts. If editing inline JavaScript later, regenerate the hashes in vercel.json or those scripts will be blocked. Do not solve that by enabling unsafe-inline for scripts.
-
-Automated checks cover script syntax, CSP hashes, recipient enforcement, HTML escaping, validation and failure cases with mocked providers. No real email was sent; credentials, live headers, browser rendering, GitHub history and production deployment remain unverified. This is a targeted source review, not a guarantee against every vulnerability.
-
-References:
-- https://resend.com/docs/api-reference/emails/send-email
-- https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
-- https://vercel.com/docs/project-configuration/vercel-json
+A source-code update cannot verify live delivery by itself. Do one real test submission after deployment and check the Web3Forms response and recipient inbox.

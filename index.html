@@ -8287,14 +8287,7 @@
             if (ctaEnter) ctaEnter.addEventListener('click', function () { if (typeof showXPLogin === 'function') showXPLogin(); });
 
             /* Become a Sponsor CTA */
-            /* Footer contact link */
-            var footerContact = document.getElementById('x26-footer-contact');
-            if (footerContact) {
-              footerContact.addEventListener('click', function (e) {
-                e.preventDefault();
-                window.location.href = 'mailto:ctf@rait.ac.in';
-              });
-            }
+            /* Footer contact is handled by the Web3Forms contact modal below. */
 
             /* Scroll cue jumps to About */
             var scrollCue = lp.querySelector('.x26-scroll-cue');
@@ -10909,88 +10902,179 @@ Organizers reserve the right to disqualify any participant found breaking these 
 <script id="rait-sponsor-v4">
 (function () {
   'use strict';
+
+  const WEB3FORMS_ACCESS_KEY = '00e75b01-f7c4-42da-9902-d896e0bfb269';
   const dialog = document.createElement('dialog');
   dialog.className = 'sponsor-dialog';
   dialog.setAttribute('aria-labelledby', 'sponsor-heading');
-  dialog.innerHTML = `<div class="sponsor-dialog-title"><img src="assets/icons/community.png" alt=""><span>Sponsorship enquiry.exe</span><button type="button" aria-label="Close sponsor form">×</button></div>
-  <form><h2 id="sponsor-heading">Let's build the next arena.</h2><p>Tell us about your organisation. Let’s find the right partnership for you.</p>
+  dialog.innerHTML = `<div class="sponsor-dialog-title"><img src="assets/icons/community.png" alt=""><span id="sponsor-dialog-caption">Sponsorship enquiry.exe</span><button type="button" aria-label="Close form">×</button></div>
+  <form novalidate>
+  <input type="hidden" name="access_key" value="${WEB3FORMS_ACCESS_KEY}">
+  <input type="hidden" name="from_name" value="RAIT CTF Website">
+  <input type="hidden" name="subject" value="RAIT CTF sponsorship enquiry">
+  <input type="hidden" name="enquiry_type" value="Sponsorship enquiry">
+  <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
+  <h2 id="sponsor-heading">Let's build the next arena.</h2>
+  <p data-form-description>Tell us about your organisation. Let’s find the right partnership for you.</p>
   <div class="sponsor-fields">
   <label>Contact name *<input name="name" autocomplete="name" required maxlength="100"></label>
-  <label>Company / organisation *<input name="company" autocomplete="organization" required maxlength="120"></label>
+  <label data-form-field="company">Company / organisation *<input name="company" autocomplete="organization" required maxlength="120"></label>
   <label>Email address *<input name="email" type="email" autocomplete="email" required maxlength="160"></label>
   <label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
-  <label class="wide">Interested tier *<select name="tier" required><option value="">Select a tier</option><option>Radiant</option><option>Diamond</option><option>Gold</option><option>Let's discuss</option></select></label>
-  <label class="wide">Anything you'd like us to know? (optional)<textarea name="message" rows="3" maxlength="1500"></textarea></label></div>
-  <label class="sponsor-consent"><input type="checkbox" name="consent" required> I agree to be contacted about this sponsorship enquiry.</label><label class="sponsor-honeypot" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off"></label><div id="sponsor-verification"></div><p>Your details will be emailed to ctf@rait.ac.in for sponsorship follow-up.</p><button class="sponsor-submit" type="submit">Submit →</button>
-  <div class="sponsor-result" role="alert" hidden><p></p></div></form><div class="sponsor-thanks" hidden tabindex="-1"><div class="thanks-icon" aria-hidden="true">✓</div><h2>Thank you!</h2><p>Your enquiry has been submitted. Thank you for supporting RAIT CTF!</p><button type="button" class="sponsor-submit">Back to the event</button></div>`;
+  <label class="wide" data-form-field="tier">Interested tier *<select name="tier" required><option value="">Select a tier</option><option>Radiant</option><option>Diamond</option><option>Gold</option><option>Let's discuss</option></select></label>
+  <label class="wide">Message <textarea name="message" rows="3" maxlength="1500" data-message></textarea></label></div>
+  <label class="sponsor-consent"><input type="checkbox" name="consent" required><span data-consent-text>I agree to be contacted about this sponsorship enquiry.</span></label>
+  <label class="sponsor-honeypot" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off"></label>
+  <p data-form-note>Your details will be sent to ctf@rait.ac.in for sponsorship follow-up.</p>
+  <button class="sponsor-submit" type="submit">Submit enquiry →</button>
+  <div class="sponsor-result" role="alert" aria-live="polite" hidden><p></p></div></form>
+  <div class="sponsor-thanks" hidden tabindex="-1"><div class="thanks-icon" aria-hidden="true">✓</div><h2 data-thanks-heading>Thank you!</h2><p data-thanks-text>Your enquiry has been submitted. Thank you for supporting RAIT CTF!</p><button type="button" class="sponsor-submit">Back to the event</button></div>`;
   document.body.appendChild(dialog);
+
   const form = dialog.querySelector('form');
   const result = dialog.querySelector('.sponsor-result');
   const thanks = dialog.querySelector('.sponsor-thanks');
-  thanks.querySelector('button').addEventListener('click', () => { if (!busy) dialog.close(); });
-  const submit = dialog.querySelector('.sponsor-submit');
-  document.querySelectorAll('#lp-enter-btn, #lp-rules-btn').forEach(button => button.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); button.click(); } }));
-  let opener, widget, token = '', busy = false, widgetLoading;
-  function report(message) { result.hidden=false; result.querySelector('p').textContent=message; }
-  async function loadVerification() {
-    if (widget !== undefined) { window.turnstile.reset(widget); return; }
-    if (widgetLoading) return widgetLoading;
-    widgetLoading=(async () => {
-      const response=await fetch('/api/form-config');
-      const config=await response.json();
-      if (!response.ok || !config.ok) throw new Error('Unavailable');
-      if (!window.turnstile) await new Promise((resolve,reject) => {
-        const script=document.createElement('script');
-        script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-        script.onload=resolve; script.onerror=() => {script.remove();reject(new Error('Unavailable'));};
-        document.head.appendChild(script);
-      });
-      widget=window.turnstile.render('#sponsor-verification',{sitekey:config.siteKey,action:'sponsor',size:'flexible',callback:value=>{token=value;},'expired-callback':()=>{token='';},'error-callback':()=>{token='';report('Security check could not load. Close and reopen the form to retry.');}});
-    })();
-    try { await widgetLoading; } finally { widgetLoading=null; }
+  const submit = form.querySelector('.sponsor-submit');
+  const companyField = form.querySelector('[data-form-field="company"]');
+  const tierField = form.querySelector('[data-form-field="tier"]');
+  const description = form.querySelector('[data-form-description]');
+  const formNote = form.querySelector('[data-form-note]');
+  const consentText = form.querySelector('[data-consent-text]');
+  const messageField = form.elements.message;
+  let opener = null;
+  let mode = 'sponsor';
+  let busy = false;
+
+  function report(message) {
+    result.hidden = false;
+    result.querySelector('p').textContent = message;
   }
-  function open(button) {
+
+  function open(button, nextMode) {
     if (busy) return;
     opener = button;
-    token = "";
+    mode = nextMode;
+    form.reset();
     result.hidden = true;
     thanks.hidden = true;
     form.hidden = false;
-    const tier = button.getAttribute('data-sponsor');
-    if (tier) form.elements.tier.value = tier;
+    form.elements.website.value = '';
+
+    const isSponsor = mode === 'sponsor';
+    dialog.querySelector('#sponsor-dialog-caption').textContent = isSponsor ? 'Sponsorship enquiry.exe' : 'Contact RAIT CTF.exe';
+    dialog.querySelector('#sponsor-heading').textContent = isSponsor ? "Let's build the next arena." : 'Contact the RAIT CTF team.';
+    description.textContent = isSponsor
+      ? 'Tell us about your organisation. Let’s find the right partnership for you.'
+      : 'Send us a message and the RAIT CTF team will get back to you.';
+    companyField.hidden = !isSponsor;
+    form.elements.company.required = isSponsor;
+    tierField.hidden = !isSponsor;
+    form.elements.tier.required = isSponsor;
+    messageField.required = !isSponsor;
+    form.elements.enquiry_type.value = isSponsor ? 'Sponsorship enquiry' : 'General contact';
+    form.elements.subject.value = isSponsor ? 'RAIT CTF sponsorship enquiry' : 'RAIT CTF contact enquiry';
+    consentText.textContent = isSponsor
+      ? 'I agree to be contacted about this sponsorship enquiry.'
+      : 'I agree to be contacted about this enquiry.';
+    formNote.textContent = isSponsor
+      ? 'Your details will be sent to ctf@rait.ac.in for sponsorship follow-up.'
+      : 'Your message will be sent to ctf@rait.ac.in.';
+    submit.textContent = isSponsor ? 'Submit enquiry →' : 'Send message →';
+
+    const tier = button && button.getAttribute('data-sponsor');
+    if (isSponsor && tier && tier !== 'true') form.elements.tier.value = tier;
     dialog.showModal();
     form.elements.name.focus();
-    loadVerification().catch(() => report("The enquiry service is unavailable. Please contact ctf@rait.ac.in."));
   }
+
   document.querySelectorAll('[data-sponsor], #lp2-sponsor-mail-btn').forEach(button => {
-    button.addEventListener('click', e => { e.preventDefault(); open(button); });
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      open(button, 'sponsor');
+    });
   });
-  dialog.querySelector('[aria-label="Close sponsor form"]').addEventListener('click', () => { if (!busy) dialog.close(); });
-  dialog.addEventListener('click', e => {
-    const r = dialog.getBoundingClientRect();
-    if (!busy && e.target === dialog && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dialog.close();
+
+  document.querySelectorAll('#x26-footer-contact, .x26-footer-social[href^="mailto:ctf@rait.ac.in"]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      open(button, 'contact');
+    });
   });
-  dialog.addEventListener('cancel', e => { if(busy) e.preventDefault(); });
-  dialog.addEventListener('close', () => { if (opener) opener.focus(); });
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
+
+  thanks.querySelector('button').addEventListener('click', () => {
+    if (!busy) dialog.close();
+  });
+  dialog.querySelector('[aria-label="Close form"]').addEventListener('click', () => {
+    if (!busy) dialog.close();
+  });
+  dialog.addEventListener('click', event => {
+    const rect = dialog.getBoundingClientRect();
+    if (!busy && event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+  });
+  dialog.addEventListener('cancel', event => {
+    if (busy) event.preventDefault();
+  });
+  dialog.addEventListener('close', () => {
+    if (opener) opener.focus();
+  });
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
     if (busy) return;
-    ['name','company','email'].forEach(key => { form.elements[key].value=form.elements[key].value.trim(); });
+
+    ['name', 'company', 'email', 'phone', 'message'].forEach(key => {
+      form.elements[key].value = form.elements[key].value.trim();
+    });
     if (!form.reportValidity()) return;
-    if (!token) { report('Please complete the security check.'); return; }
-    const data=Object.fromEntries(new FormData(form)); data.token=token;
-    busy=true; submit.disabled=true; submit.textContent='Sending…'; result.hidden=true;
-    dialog.setAttribute('aria-busy','true');
+
+    // Quietly reject submissions caught by the honeypot.
+    if (form.elements.website.value || form.elements.botcheck.checked) {
+      report('Unable to submit your enquiry right now. Please try again later.');
+      return;
+    }
+
+    const data = Object.fromEntries(new FormData(form));
+    delete data.website;
+    busy = true;
+    submit.disabled = true;
+    submit.textContent = 'Sending…';
+    result.hidden = true;
+    dialog.setAttribute('aria-busy', 'true');
+
     try {
-      const response=await fetch('/api/sponsor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(25000)});
-      const receipt=await response.json();
-      if (!response.ok || receipt.ok !== true) throw new Error(receipt.error || 'Unable to submit. Please try again.');
-      form.reset(); form.hidden=true; thanks.hidden=false; thanks.focus();
-    } catch (error) { report(error.name === 'TimeoutError' ? 'The request timed out; delivery could not be confirmed. Contact ctf@rait.ac.in before retrying.' : (error.message || 'Unable to submit. Please try again.')); }
-    finally { busy=false;submit.disabled=false;submit.textContent='Submit →';dialog.removeAttribute('aria-busy');token='';if(widget!==undefined)window.turnstile.reset(widget); }
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(data),
+        signal: AbortSignal.timeout(25000)
+      });
+      let receipt = {};
+      try { receipt = await response.json(); } catch { /* handled below */ }
+      if (!response.ok || receipt.success !== true) {
+        const message = receipt.message || (receipt.body && receipt.body.message);
+        throw new Error(message || 'Unable to send your enquiry. Please try again.');
+      }
+
+      form.reset();
+      form.hidden = true;
+      thanks.querySelector('[data-thanks-heading]').textContent = mode === 'sponsor' ? 'Thank you!' : 'Message sent!';
+      thanks.querySelector('[data-thanks-text]').textContent = mode === 'sponsor'
+        ? 'Your sponsorship enquiry has been submitted. Thank you for supporting RAIT CTF!'
+        : 'Your message has been sent to the RAIT CTF team. We’ll get back to you as soon as we can.';
+      thanks.hidden = false;
+      thanks.focus();
+    } catch (error) {
+      report(error.name === 'TimeoutError'
+        ? 'The request timed out, so delivery could not be confirmed. Please check with ctf@rait.ac.in before retrying.'
+        : (error.message || 'Unable to send your enquiry. Please try again.'));
+    } finally {
+      busy = false;
+      submit.disabled = false;
+      submit.textContent = mode === 'sponsor' ? 'Submit enquiry →' : 'Send message →';
+      dialog.removeAttribute('aria-busy');
+    }
   });
 })();
-
 </script>
 </body>
 
